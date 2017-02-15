@@ -1,0 +1,7 @@
+[package]
+name = "raytracer"
+version = "0.1.0"
+authors = ["Michael Walczyk <michael.walczyk@obscuradigital.com>"]
+
+[dependencies]
+rand = "0.3.14"
