@@ -29,6 +29,7 @@ const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
 const SAMPLES: u32 = 4;
 const NUMBER_OF_THREADS: u32 = 40;
+const GAMMA: f64 = 1.0 / 2.2;
 
 // direction vectors for generating rays from uv-coordinates
 const LOWER_LEFT_CORNER: Vector = Vector {
@@ -53,7 +54,7 @@ const ORIGIN: Vector = Vector {
 };
 
 fn color_scene(r: &Ray, scene: &HitableList) -> Vector {
-    let intersection = scene.hit(&r, 0.0, std::f64::MAX);
+    let intersection = scene.hit(&r, 0.001, std::f64::MAX);
     match intersection {
         Intersection::Hit { position, normal, .. } => {
             let target = position + normal + Vector::random_in_unit_sphere();
@@ -112,11 +113,16 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<HitableList>) -
             }
 
             col /= SAMPLES as f64;
+            let gamma_corrected = Vector {
+                x: col.x.powf(GAMMA),
+                y: col.y.powf(GAMMA),
+                z: col.z.powf(GAMMA),
+            };
 
             // convert colors to 0..255
-            let ir = (255.99 * col.x) as u32;
-            let ig = (255.99 * col.y) as u32;
-            let ib = (255.99 * col.z) as u32;
+            let ir = (255.99 * gamma_corrected.x) as u32;
+            let ig = (255.99 * gamma_corrected.y) as u32;
+            let ib = (255.99 * gamma_corrected.z) as u32;
 
             colors.push(Color(ir, ig, ib));
         }
