@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 extern crate rand;
+use rand::Rng;
 
 use std::error::Error;
 use std::io::prelude::*;
@@ -10,8 +11,6 @@ use std::path::Path;
 use std::time::Instant;
 use std::thread;
 use std::sync::Arc;
-
-use rand::Rng;
 
 mod vector;
 mod ray;
@@ -27,7 +26,7 @@ use hitable::HitableList;
 // output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
-const SAMPLES: u32 = 4;
+const SAMPLES: u32 = 1;
 const NUMBER_OF_THREADS: u32 = 40;
 const GAMMA: f64 = 1.0 / 2.2;
 

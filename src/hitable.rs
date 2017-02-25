@@ -1,6 +1,7 @@
 use vector::Vector;
 use vector::dot;
 use ray::Ray;
+
 use std::sync;
 
 #[derive(Copy, Clone, Debug)]
@@ -35,9 +36,9 @@ impl Hitable for Sphere {
         // (one real solution)
 
         let oc = r.origin - self.center;
-        let a = dot(r.direction, r.direction);
-        let b = dot(oc, r.direction);
-        let c = dot(oc, oc) - self.radius * self.radius;
+        let a = dot(&r.direction, &r.direction);
+        let b = dot(&oc, &r.direction);
+        let c = dot(&oc, &oc) - self.radius * self.radius;
         let discriminant = b * b - a * c;
 
         if discriminant > 0.0 {

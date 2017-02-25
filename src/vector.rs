@@ -11,16 +11,24 @@ pub struct Vector {
 }
 
 impl Vector {
-    pub fn length(&self) -> f64 {
-        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
-    }
-
     pub fn squared_length(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
+    pub fn length(&self) -> f64 {
+        self.squared_length().sqrt()
+    }
+
     pub fn normalize(&mut self) {
         *self /= self.length();
+    }
+
+    pub fn min_component(&self) -> f64 {
+        self.x.min(self.y).min(self.z)
+    }
+
+    pub fn max_component(&self) -> f64 {
+        self.x.max(self.y).max(self.z)
     }
 
     pub fn origin() -> Vector {
@@ -209,11 +217,15 @@ impl Neg for Vector {
     }
 }
 
-pub fn dot(lhs: Vector, rhs: Vector) -> f64 {
+pub fn dot(lhs: &Vector, rhs: &Vector) -> f64 {
     lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
 }
 
-pub fn cross(lhs: Vector, rhs: Vector) -> Vector {
+pub fn abs_dot(lhs: &Vector, rhs: &Vector) -> f64 {
+    dot(lhs, rhs).abs()
+}
+
+pub fn cross(lhs: &Vector, rhs: &Vector) -> Vector {
     Vector {
         x: lhs.y * rhs.z - lhs.z * rhs.y,
         y: -(lhs.x * rhs.z - lhs.z * rhs.x),
