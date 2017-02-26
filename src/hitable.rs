@@ -1,8 +1,7 @@
 use vector::Vector;
 use vector::dot;
 use ray::Ray;
-
-use std::sync;
+use material::*;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Intersection {
@@ -11,6 +10,7 @@ pub enum Intersection {
         t: f64,
         position: Vector,
         normal: Vector,
+        material: Lambertian,
     },
 }
 
@@ -22,6 +22,7 @@ pub trait Hitable: Sync + Send {
 pub struct Sphere {
     pub center: Vector,
     pub radius: f64,
+    pub material: Lambertian,
 }
 
 impl Hitable for Sphere {
@@ -51,6 +52,7 @@ impl Hitable for Sphere {
                     t: t,
                     position: position,
                     normal: normal,
+                    material: self.material,
                 };
             }
             temp = (-b + discriminant.sqrt()) / a;
@@ -62,6 +64,7 @@ impl Hitable for Sphere {
                     t: t,
                     position: position,
                     normal: normal,
+                    material: self.material,
                 };
             }
         }
@@ -74,6 +77,7 @@ impl Default for Sphere {
         Sphere {
             center: Vector::origin(),
             radius: 1.0,
+            material: Lambertian { albedo: Vector::one() },
         }
     }
 }
@@ -96,12 +100,13 @@ impl Hitable for HitableList {
         // test against every object and find the closest point of intersection
         for i in &self.items {
             match i.hit(&r, t_min, t_max) {
-                Intersection::Hit { t, position, normal } if t < closest_so_far => {
+                Intersection::Hit { t, position, normal, material } if t < closest_so_far => {
                     closest_so_far = t;
                     intersect = Intersection::Hit {
                         t: t,
                         position: position,
                         normal: normal,
+                        material: material,
                     };
                 }
                 _ => continue,

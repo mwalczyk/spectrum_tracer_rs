@@ -62,6 +62,26 @@ impl Vector {
         }
         p
     }
+
+    pub fn zero() -> Vector {
+        Vector {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
+    }
+
+    pub fn one() -> Vector {
+        Vector {
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+        }
+    }
+
+    pub fn reflect(v: Vector, n: Vector) -> Vector {
+        v - n * 2.0 * dot(&v, &n)
+    }
 }
 
 // Vector + Vector

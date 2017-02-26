@@ -15,6 +15,7 @@ use std::sync::Arc;
 mod vector;
 mod ray;
 mod hitable;
+mod material;
 
 use vector::Vector;
 use ray::Ray;
@@ -22,11 +23,14 @@ use hitable::Hitable;
 use hitable::Intersection;
 use hitable::Sphere;
 use hitable::HitableList;
+use material::Material;
+use material::Lambertian;
 
 // output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
 const SAMPLES: u32 = 1;
+const MAX_DEPTH: u32 = 2;
 const NUMBER_OF_THREADS: u32 = 40;
 const GAMMA: f64 = 1.0 / 2.2;
 
@@ -52,16 +56,26 @@ const ORIGIN: Vector = Vector {
     z: 0.0,
 };
 
-fn color_scene(r: &Ray, scene: &HitableList) -> Vector {
+fn color_scene(r: &Ray, scene: &HitableList, depth: u32) -> Vector {
     let intersection = scene.hit(&r, 0.001, std::f64::MAX);
     match intersection {
-        Intersection::Hit { position, normal, .. } => {
-            let target = position + normal + Vector::random_in_unit_sphere();
-            let bounce_ray = Ray {
-                origin: position,
-                direction: target - position,
-            };
-            color_scene(&bounce_ray, &scene) * 0.5
+        Intersection::Hit { position, normal, material, .. } => {
+            //    let target = position + normal + Vector::random_in_unit_sphere();
+            // let bounce_ray = Ray {
+            // origin: position,
+            // direction: target - position,
+            // };
+            let mut attenuation = Vector::zero();
+            if depth < MAX_DEPTH {
+                if let Some(bounce_ray) = material.scatter(&r, &intersection, &mut attenuation) {
+                    return attenuation * color_scene(&bounce_ray, &scene, depth + 1);
+                } else {
+                    Vector::zero()
+                }
+            } else {
+                Vector::zero()
+            }
+
         }
         Intersection::Miss => {
             let mut unit_direction: Vector = r.direction;
@@ -108,7 +122,7 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<HitableList>) -
                     origin: ORIGIN,
                     direction: LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v,
                 };
-                col += color_scene(&ray, &scene);
+                col += color_scene(&ray, &scene, 0);
             }
 
             col /= SAMPLES as f64;
@@ -139,6 +153,14 @@ fn main() {
     println!("starting render: {} x {} px", RES_X, RES_Y);
 
     // build a scene
+    let lamb = Lambertian {
+        albedo: Vector {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        },
+    };
+
     let mut scene = HitableList::new();
     let sphere_0 = Box::new(Sphere {
         center: Vector {
@@ -147,6 +169,7 @@ fn main() {
             z: -1.0,
         },
         radius: 0.5,
+        material: lamb,
     });
     let sphere_1 = Box::new(Sphere {
         center: Vector {
@@ -155,13 +178,14 @@ fn main() {
             z: -1.0,
         },
         radius: 100.0,
+        material: lamb,
     });
     scene.items.push(sphere_0);
     scene.items.push(sphere_1);
 
     // wrap the scene in an automatic reference counter so that
     // it can be shared immutably across multiple threads
-    let mut shared_scene = Arc::new(scene);
+    let shared_scene = Arc::new(scene);
 
     let mut file_contents: String = format!("P3\n{} {}\n255\n", RES_X, RES_Y);
     let mut child_threads = vec![];
