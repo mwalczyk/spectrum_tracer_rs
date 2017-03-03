@@ -1,16 +1,18 @@
 use vector::Vector;
-use vector::dot;
 use ray::Ray;
-use material::*;
+use material::Material;
+use material::Lambertian;
 
-#[derive(Copy, Clone, Debug)]
+use std::sync::Arc;
+
+#[derive(Clone)]
 pub enum Intersection {
     Miss,
     Hit {
         t: f64,
         position: Vector,
         normal: Vector,
-        material: Lambertian,
+        material: Arc<Material>,
     },
 }
 
@@ -18,11 +20,11 @@ pub trait Hitable: Sync + Send {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Intersection;
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone)]
 pub struct Sphere {
     pub center: Vector,
     pub radius: f64,
-    pub material: Lambertian,
+    pub material: Arc<Material>,
 }
 
 impl Hitable for Sphere {
@@ -37,9 +39,9 @@ impl Hitable for Sphere {
         // (one real solution)
 
         let oc = r.origin - self.center;
-        let a = dot(&r.direction, &r.direction);
-        let b = dot(&oc, &r.direction);
-        let c = dot(&oc, &oc) - self.radius * self.radius;
+        let a = r.direction.dot(&r.direction);
+        let b = oc.dot(&r.direction);
+        let c = oc.dot(&oc) - self.radius * self.radius;
         let discriminant = b * b - a * c;
 
         if discriminant > 0.0 {
@@ -52,7 +54,7 @@ impl Hitable for Sphere {
                     t: t,
                     position: position,
                     normal: normal,
-                    material: self.material,
+                    material: self.material.clone(),
                 };
             }
             temp = (-b + discriminant.sqrt()) / a;
@@ -64,7 +66,7 @@ impl Hitable for Sphere {
                     t: t,
                     position: position,
                     normal: normal,
-                    material: self.material,
+                    material: self.material.clone(),
                 };
             }
         }
@@ -77,7 +79,7 @@ impl Default for Sphere {
         Sphere {
             center: Vector::origin(),
             radius: 1.0,
-            material: Lambertian { albedo: Vector::one() },
+            material: Arc::new(Lambertian { albedo: Vector::one() }),
         }
     }
 }
@@ -100,13 +102,13 @@ impl Hitable for HitableList {
         // test against every object and find the closest point of intersection
         for i in &self.items {
             match i.hit(&r, t_min, t_max) {
-                Intersection::Hit { t, position, normal, material } if t < closest_so_far => {
+                Intersection::Hit { t, position, normal, ref material } if t < closest_so_far => {
                     closest_so_far = t;
                     intersect = Intersection::Hit {
                         t: t,
                         position: position,
                         normal: normal,
-                        material: material,
+                        material: material.clone(),
                     };
                 }
                 _ => continue,

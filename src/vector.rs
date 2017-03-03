@@ -19,8 +19,8 @@ impl Vector {
         self.squared_length().sqrt()
     }
 
-    pub fn normalize(&mut self) {
-        *self /= self.length();
+    pub fn normalize(&self) -> Vector {
+        *self / self.length()
     }
 
     pub fn min_component(&self) -> f64 {
@@ -29,6 +29,26 @@ impl Vector {
 
     pub fn max_component(&self) -> f64 {
         self.x.max(self.y).max(self.z)
+    }
+
+    pub fn dot(&self, rhs: &Vector) -> f64 {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+
+    pub fn abs_dot(&self, rhs: &Vector) -> f64 {
+        self.dot(rhs).abs()
+    }
+
+    pub fn cross(&self, rhs: &Vector) -> Vector {
+        Vector {
+            x: self.y * rhs.z - self.z * rhs.y,
+            y: -(self.x * rhs.z - self.z * rhs.x),
+            z: self.x * rhs.y - self.y * rhs.x,
+        }
+    }
+
+    pub fn reflect(&self, n: &Vector) -> Vector {
+        *self - *n * 2.0 * self.dot(n)
     }
 
     pub fn origin() -> Vector {
@@ -77,10 +97,6 @@ impl Vector {
             y: 1.0,
             z: 1.0,
         }
-    }
-
-    pub fn reflect(v: Vector, n: Vector) -> Vector {
-        v - n * 2.0 * dot(&v, &n)
     }
 }
 
@@ -234,22 +250,6 @@ impl Neg for Vector {
             y: -self.y,
             z: -self.z,
         }
-    }
-}
-
-pub fn dot(lhs: &Vector, rhs: &Vector) -> f64 {
-    lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
-}
-
-pub fn abs_dot(lhs: &Vector, rhs: &Vector) -> f64 {
-    dot(lhs, rhs).abs()
-}
-
-pub fn cross(lhs: &Vector, rhs: &Vector) -> Vector {
-    Vector {
-        x: lhs.y * rhs.z - lhs.z * rhs.y,
-        y: -(lhs.x * rhs.z - lhs.z * rhs.x),
-        z: lhs.x * rhs.y - lhs.y * rhs.x,
     }
 }
 

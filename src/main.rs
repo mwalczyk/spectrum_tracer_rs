@@ -25,12 +25,13 @@ use hitable::Sphere;
 use hitable::HitableList;
 use material::Material;
 use material::Lambertian;
+use material::Metallic;
 
 // output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
 const SAMPLES: u32 = 1;
-const MAX_DEPTH: u32 = 2;
+const MAX_DEPTH: u32 = 5;
 const NUMBER_OF_THREADS: u32 = 40;
 const GAMMA: f64 = 1.0 / 2.2;
 
@@ -59,13 +60,8 @@ const ORIGIN: Vector = Vector {
 fn color_scene(r: &Ray, scene: &HitableList, depth: u32) -> Vector {
     let intersection = scene.hit(&r, 0.001, std::f64::MAX);
     match intersection {
-        Intersection::Hit { position, normal, material, .. } => {
-            //    let target = position + normal + Vector::random_in_unit_sphere();
-            // let bounce_ray = Ray {
-            // origin: position,
-            // direction: target - position,
-            // };
-            let mut attenuation = Vector::zero();
+        Intersection::Hit { position, normal, ref material, .. } => {
+            let mut attenuation = Vector::one();
             if depth < MAX_DEPTH {
                 if let Some(bounce_ray) = material.scatter(&r, &intersection, &mut attenuation) {
                     return attenuation * color_scene(&bounce_ray, &scene, depth + 1);
@@ -153,13 +149,21 @@ fn main() {
     println!("starting render: {} x {} px", RES_X, RES_Y);
 
     // build a scene
-    let lamb = Lambertian {
+    let mat_0 = Arc::new(Lambertian {
         albedo: Vector {
             x: 1.0,
             y: 0.0,
             z: 0.0,
         },
-    };
+    });
+
+    let mat_1 = Arc::new(Metallic {
+        albedo: Vector {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+    });
 
     let mut scene = HitableList::new();
     let sphere_0 = Box::new(Sphere {
@@ -169,7 +173,7 @@ fn main() {
             z: -1.0,
         },
         radius: 0.5,
-        material: lamb,
+        material: mat_1.clone(),
     });
     let sphere_1 = Box::new(Sphere {
         center: Vector {
@@ -178,7 +182,7 @@ fn main() {
             z: -1.0,
         },
         radius: 100.0,
-        material: lamb,
+        material: mat_0.clone(),
     });
     scene.items.push(sphere_0);
     scene.items.push(sphere_1);
