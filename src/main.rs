@@ -3,6 +3,7 @@
 
 extern crate rand;
 use rand::Rng;
+use rand::distributions::{IndependentSample, Range};
 
 use std::error::Error;
 use std::io::prelude::*;
@@ -10,7 +11,7 @@ use std::fs::File;
 use std::path::Path;
 use std::time::Instant;
 use std::thread;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 mod vector;
 mod ray;
@@ -147,7 +148,9 @@ fn main() {
     println!("starting render: {} x {} px", RES_X, RES_Y);
 
     // build a scene
-    let mat_0 = Arc::new(Lambertian {
+    let mut scene = ShapeAggregate::new();
+
+    let ground_mtl = Arc::new(Lambertian {
         albedo: Vector {
             x: 1.0,
             y: 0.98,
@@ -155,35 +158,44 @@ fn main() {
         },
     });
 
-    let mat_1 = Arc::new(Lambertian {
-        albedo: Vector {
-            x: 1.0,
-            y: 0.3,
-            z: 0.1,
-        },
-    });
-
-    let mut scene = ShapeAggregate::new();
-    let sphere_0 = Box::new(Sphere {
-        center: Vector {
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-        },
-        radius: 0.5,
-        material: mat_1.clone(),
-    });
-    let sphere_1 = Box::new(Sphere {
+    let ground_sphere = Box::new(Sphere {
         center: Vector {
             x: 0.0,
             y: -100.5,
             z: -1.0,
         },
         radius: 100.0,
-        material: mat_0.clone(),
+        material: ground_mtl.clone(),
     });
-    scene.items.push(sphere_0);
-    scene.items.push(sphere_1);
+    scene.items.push(ground_sphere);
+
+    let mut rng = rand::thread_rng();
+    let between = Range::new(-3.0, 3.0);
+
+    for i in 0..10 {
+        let x = between.ind_sample(&mut rng);
+        let z = -5.0 * rng.next_f64() - 2.0;
+        let radius = 0.5;
+        let r = rng.next_f64();
+        let g = rng.next_f64();
+        let b = rng.next_f64();
+
+        let mtl = Arc::new(Metallic {
+            albedo: Vector::new(r, g, b)
+        });
+
+        let sph = Box::new(Sphere {
+            center: Vector {
+                x: x,
+                y: 0.0,
+                z: z,
+            },
+            radius: radius,
+            material: mtl.clone(),
+        });
+
+        scene.items.push(sph);
+    }
 
     // wrap the scene in an automatic reference counter so that
     // it can be shared immutably across multiple threads
