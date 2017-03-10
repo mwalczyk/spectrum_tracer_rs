@@ -6,6 +6,13 @@ pub struct Ray {
 }
 
 impl Ray {
+    pub fn new(o: &Vector, d: &mut Vector) -> Ray {
+        Ray {
+            origin: *o,
+            direction: d.normalize(),
+        }
+    }
+
     pub fn point_at(&self, t: f64) -> Vector {
         self.origin + self.direction * t
     }

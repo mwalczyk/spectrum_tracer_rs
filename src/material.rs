@@ -1,6 +1,6 @@
 use vector::Vector;
 use ray::Ray;
-use hitable::Intersection;
+use shape::Intersection;
 
 pub trait Material: Sync + Send {
     // produce a scattered ray unless the incident
@@ -8,7 +8,6 @@ pub trait Material: Sync + Send {
     fn scatter(&self,
                incident: &Ray,
                intersection: &Intersection,
-               ++++++++++++++
                attenuation: &mut Vector)
                -> Option<Ray>;
 }
@@ -28,10 +27,7 @@ impl Material for Lambertian {
         match *intersection {
             Intersection::Hit { position, normal, .. } => {
                 let target = position + normal + Vector::random_in_unit_sphere();
-                let scattered = Ray {
-                    origin: position,
-                    direction: target - position,
-                };
+                let scattered = Ray::new(&position, &mut (target - position));
 
                 *attenuation = self.albedo;
 
@@ -56,18 +52,14 @@ impl Material for Metallic {
 
         match *intersection {
             Intersection::Hit { position, normal, .. } => {
-                let reflected = incident.direction.normalize().reflect(&normal);
-                let scattered = Ray {
-                    origin: position,
-                    direction: reflected,
-                };
+                let mut reflected = incident.direction.normalize().reflect(&normal);
+                let scattered = Ray::new(&position, &mut reflected);
 
                 *attenuation = self.albedo;
 
-                if scattered.direction.dot(&normal) > 0.0 {
-                    return Some(scattered);
-                }
-                None
+                // if scattered.direction.dot(&normal) > 0.0 {
+                return Some(scattered);
+                //}None
             }
             _ => None,
         }

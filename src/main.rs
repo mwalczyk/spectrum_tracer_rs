@@ -14,15 +14,15 @@ use std::sync::Arc;
 
 mod vector;
 mod ray;
-mod hitable;
+mod shape;
 mod material;
 
 use vector::Vector;
 use ray::Ray;
-use hitable::Hitable;
-use hitable::Intersection;
-use hitable::Sphere;
-use hitable::HitableList;
+use shape::Shape;
+use shape::Intersection;
+use shape::Sphere;
+use shape::ShapeAggregate;
 use material::Material;
 use material::Lambertian;
 use material::Metallic;
@@ -30,7 +30,7 @@ use material::Metallic;
 // output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
-const SAMPLES: u32 = 1;
+const SAMPLES: u32 = 64;
 const MAX_DEPTH: u32 = 5;
 const NUMBER_OF_THREADS: u32 = 40;
 const GAMMA: f64 = 1.0 / 2.2;
@@ -57,8 +57,8 @@ const ORIGIN: Vector = Vector {
     z: 0.0,
 };
 
-fn color_scene(r: &Ray, scene: &HitableList, depth: u32) -> Vector {
-    let intersection = scene.hit(&r, 0.001, std::f64::MAX);
+fn color_scene(r: &Ray, scene: &ShapeAggregate, depth: u32) -> Vector {
+    let intersection = scene.intersect(&r, 0.001, std::f64::MAX);
     match intersection {
         Intersection::Hit { position, normal, ref material, .. } => {
             let mut attenuation = Vector::one();
@@ -94,7 +94,7 @@ fn color_scene(r: &Ray, scene: &HitableList, depth: u32) -> Vector {
 
 struct Color(u32, u32, u32);
 
-fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<HitableList>) -> Vec<Color> {
+fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<ShapeAggregate>) -> Vec<Color> {
     let mut colors = Vec::new();
     let mut rng = rand::thread_rng();
 
@@ -114,10 +114,8 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<HitableList>) -
                 // note that we flip the y-axis
                 let u = (x as f64 + rng.next_f64()) / RES_X as f64;
                 let v = ((RES_Y - y) as f64 + rng.next_f64()) / RES_Y as f64;
-                let ray = Ray {
-                    origin: ORIGIN,
-                    direction: LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v,
-                };
+                let ray = Ray::new(&ORIGIN,
+                                   &mut (LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v));
                 col += color_scene(&ray, &scene, 0);
             }
 
@@ -152,20 +150,20 @@ fn main() {
     let mat_0 = Arc::new(Lambertian {
         albedo: Vector {
             x: 1.0,
-            y: 0.0,
-            z: 0.0,
+            y: 0.98,
+            z: 0.96,
         },
     });
 
-    let mat_1 = Arc::new(Metallic {
+    let mat_1 = Arc::new(Lambertian {
         albedo: Vector {
-            x: 0.0,
-            y: 1.0,
-            z: 0.0,
+            x: 1.0,
+            y: 0.3,
+            z: 0.1,
         },
     });
 
-    let mut scene = HitableList::new();
+    let mut scene = ShapeAggregate::new();
     let sphere_0 = Box::new(Sphere {
         center: Vector {
             x: 0.0,
