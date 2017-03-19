@@ -11,9 +11,13 @@ const EPSILON: f64 = 0.001;
 pub enum Intersection {
     Miss,
     Hit {
+        // how far along the ray
         t: f64,
+        // point of intersection
         position: Vector,
+        // normal at point of intersection
         normal: Vector,
+        // material definition at point of intersection
         material: Arc<Material>,
     },
 }
@@ -75,40 +79,6 @@ impl Shape for Sphere {
         } else {
             Intersection::Miss
         }
-        // let oc = r.origin - self.center;
-        // let a = r.direction.dot(&r.direction);
-        // let b = oc.dot(&r.direction);
-        // let c = oc.dot(&oc) - self.radius * self.radius;
-        // let discriminant = b * b - a * c;
-        //
-        // if discriminant > 0.0 {
-        // let mut temp = (-b - discriminant.sqrt()) / a;
-        // if temp < t_max && temp > t_min {
-        // let t: f64 = temp;
-        // let position = r.point_at(t);
-        // let normal = (position - self.center) / self.radius;
-        // return Intersection::Hit {
-        // t: t,
-        // position: position,
-        // normal: normal,
-        // material: self.material.clone(),
-        // };
-        // }
-        // temp = (-b + discriminant.sqrt()) / a;
-        // if temp < t_max && temp > t_min {
-        // let t: f64 = temp;
-        // let position = r.point_at(t);
-        // let normal = (position - self.center) / self.radius;
-        // return Intersection::Hit {
-        // t: t,
-        // position: position,
-        // normal: normal,
-        // material: self.material.clone(),
-        // };
-        // }
-        // }
-        // Intersection::Miss
-        // }
     }
 }
 

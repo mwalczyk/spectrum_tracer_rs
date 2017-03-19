@@ -3,7 +3,7 @@
 
 extern crate rand;
 use rand::Rng;
-use rand::distributions::{IndependentSample, Range};
+use rand::distributions::Range;
 
 use std::error::Error;
 use std::io::prelude::*;
@@ -11,7 +11,7 @@ use std::fs::File;
 use std::path::Path;
 use std::time::Instant;
 use std::thread;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 mod vector;
 mod ray;
@@ -31,9 +31,9 @@ use material::Metallic;
 // output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
-const SAMPLES: u32 = 64;
+const SAMPLES: u32 = 1;
 const MAX_DEPTH: u32 = 5;
-const NUMBER_OF_THREADS: u32 = 40;
+const NUMBER_OF_THREADS: u32 = 10;
 const GAMMA: f64 = 1.0 / 2.2;
 
 // direction vectors for generating rays from uv-coordinates
@@ -58,14 +58,14 @@ const ORIGIN: Vector = Vector {
     z: 0.0,
 };
 
-fn color_scene(r: &Ray, scene: &ShapeAggregate, depth: u32) -> Vector {
+fn trace(r: &Ray, scene: &ShapeAggregate, depth: u32) -> Vector {
     let intersection = scene.intersect(&r, 0.001, std::f64::MAX);
     match intersection {
         Intersection::Hit { position, normal, ref material, .. } => {
             let mut attenuation = Vector::one();
             if depth < MAX_DEPTH {
                 if let Some(bounce_ray) = material.scatter(&r, &intersection, &mut attenuation) {
-                    return attenuation * color_scene(&bounce_ray, &scene, depth + 1);
+                    return attenuation * trace(&bounce_ray, &scene, depth + 1);
                 } else {
                     Vector::zero()
                 }
@@ -75,7 +75,7 @@ fn color_scene(r: &Ray, scene: &ShapeAggregate, depth: u32) -> Vector {
 
         }
         Intersection::Miss => {
-            let mut unit_direction: Vector = r.direction;
+            let unit_direction: Vector = r.direction;
             unit_direction.normalize();
             let t: f64 = 0.5 * (unit_direction.y + 1.0);
             let white = Vector {
@@ -116,8 +116,8 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<ShapeAggregate>
                 let u = (x as f64 + rng.next_f64()) / RES_X as f64;
                 let v = ((RES_Y - y) as f64 + rng.next_f64()) / RES_Y as f64;
                 let ray = Ray::new(&ORIGIN,
-                                   &mut (LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v));
-                col += color_scene(&ray, &scene, 0);
+                                   &(LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v));
+                col += trace(&ray, &scene, 0);
             }
 
             col /= SAMPLES as f64;
@@ -246,7 +246,6 @@ fn main() {
             file_contents.push_str(&pixel);
         }
     }
-
 
     let elapsed = start.elapsed();
 

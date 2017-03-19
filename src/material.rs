@@ -53,7 +53,7 @@ impl Material for Metallic {
 
         match *intersection {
             Intersection::Hit { position, normal, .. } => {
-                let mut reflected = incident.direction.normalize().reflect(&normal);
+                let reflected = incident.direction.normalize().reflect(&normal);
                 let scattered = Ray::new(&position,
                                          &mut (reflected +
                                                Vector::random_in_unit_sphere() * self.glossiness));

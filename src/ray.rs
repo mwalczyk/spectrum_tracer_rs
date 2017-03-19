@@ -6,7 +6,7 @@ pub struct Ray {
 }
 
 impl Ray {
-    pub fn new(o: &Vector, d: &mut Vector) -> Ray {
+    pub fn new(o: &Vector, d: &Vector) -> Ray {
         Ray {
             origin: *o,
             direction: d.normalize(),
