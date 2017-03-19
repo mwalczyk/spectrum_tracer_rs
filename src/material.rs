@@ -41,6 +41,7 @@ impl Material for Lambertian {
 
 pub struct Metallic {
     pub albedo: Vector,
+    pub glossiness: f64,
 }
 
 impl Material for Metallic {
@@ -53,7 +54,9 @@ impl Material for Metallic {
         match *intersection {
             Intersection::Hit { position, normal, .. } => {
                 let mut reflected = incident.direction.normalize().reflect(&normal);
-                let scattered = Ray::new(&position, &mut reflected);
+                let scattered = Ray::new(&position,
+                                         &mut (reflected +
+                                               Vector::random_in_unit_sphere() * self.glossiness));
 
                 *attenuation = self.albedo;
 

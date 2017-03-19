@@ -138,6 +138,10 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<ShapeAggregate>
     colors
 }
 
+fn map(v: f64, fmin: f64, fmax: f64, tmin: f64, tmax: f64) -> f64 {
+    (v - fmin) / (tmin - fmin) * (tmax - fmax) + fmax
+}
+
 fn main() {
     let path = Path::new("output/render.ppm");
     let display = path.display();
@@ -167,21 +171,45 @@ fn main() {
         radius: 100.0,
         material: ground_mtl.clone(),
     });
+
+    let large_mtl = Arc::new(Lambertian {
+        albedo: Vector {
+            x: 0.9,
+            y: 0.88,
+            z: 0.86,
+        },
+    });
+
+    let large_sph = Box::new(Sphere {
+        center: Vector {
+            x: 0.0,
+            y: 1.5,
+            z: -7.0,
+        },
+        radius: 3.0,
+        material: large_mtl.clone(),
+    });
     scene.items.push(ground_sphere);
+    scene.items.push(large_sph);
 
     let mut rng = rand::thread_rng();
     let between = Range::new(-3.0, 3.0);
 
-    for i in 0..10 {
-        let x = between.ind_sample(&mut rng);
-        let z = -5.0 * rng.next_f64() - 2.0;
+    const NUMBER_OF_SPHERES: u32 = 5;
+
+    for i in 1..NUMBER_OF_SPHERES {
+        // let x = map((i as f64) / (NUMBER_OF_SPHERES as f64), 0.0, 1.0, -0.9, 0.9);
+        let pct = (i as f64) / (NUMBER_OF_SPHERES as f64);
+        let x = (pct * 2.0 - 1.0) * 3.5;
+        let z = -3.0;
         let radius = 0.5;
         let r = rng.next_f64();
         let g = rng.next_f64();
         let b = rng.next_f64();
 
         let mtl = Arc::new(Metallic {
-            albedo: Vector::new(r, g, b)
+            albedo: Vector::new(r, g, b),
+            glossiness: pct,
         });
 
         let sph = Box::new(Sphere {
