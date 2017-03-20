@@ -8,19 +8,21 @@ use std::sync::Arc;
 const EPSILON: f64 = 0.001;
 
 #[derive(Clone)]
-pub struct Intersection {
+pub struct DifferentialGeometry<'a> {
     // how far along the ray
     pub t: f64,
     // point of intersection
     pub position: Vector,
     // normal at point of intersection
     pub normal: Vector,
-    // material definition at point of intersection
-    pub material: Arc<Material>,
+    // shape that was hit
+    pub shape: &'a Shape,
 }
 
+/// / HOW DO YOU IMPOSE A CERTAIN MEMBER VARIABLE ON A TRAIT OBJECT???
+
 pub trait Shape: Sync + Send {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<Intersection>;
+    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<DifferentialGeometry>;
 }
 
 #[derive(Clone)]
@@ -31,7 +33,7 @@ pub struct Sphere {
 }
 
 impl Shape for Sphere {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
+    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<DifferentialGeometry> {
         // sphere: dot((p - c), (p - c)) = r * r;
         // ray: a + b * t = p
         // substitute: dot((a + b * t - c), (a + b * t - c)) = r * r
@@ -57,21 +59,21 @@ impl Shape for Sphere {
             let t: f64 = solution_1 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            return Some(Intersection {
+            return Some(DifferentialGeometry {
                 t: t,
                 position: position,
                 normal: normal,
-                material: self.material.clone(),
+                shape: self,
             });
         } else if solution_0 > EPSILON {
             let t: f64 = solution_0 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            return Some(Intersection {
+            return Some(DifferentialGeometry {
                 t: t,
                 position: position,
                 normal: normal,
-                material: self.material.clone(),
+                shape: self,
             });
         } else {
             None
@@ -100,8 +102,8 @@ impl ShapeAggregate {
 }
 
 impl Shape for ShapeAggregate {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
-        let mut closest_intersection: Option<Intersection> = None;
+    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<DifferentialGeometry> {
+        let mut closest_intersection: Option<DifferentialGeometry> = None;
         let mut closest_t = t_max;
 
         // test against every object and find the closest point of intersection
@@ -109,11 +111,11 @@ impl Shape for ShapeAggregate {
             if let Some(intersect) = i.intersect(&r, t_min, t_max) {
                 if intersect.t < closest_t {
                     closest_t = intersect.t;
-                    closest_intersection = Some(Intersection {
+                    closest_intersection = Some(DifferentialGeometry {
                         t: intersect.t,
                         position: intersect.position,
                         normal: intersect.normal,
-                        material: intersect.material.clone(),
+                        shape: intersect.shape,
                     });
                 }
             }

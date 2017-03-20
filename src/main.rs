@@ -1,10 +1,12 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+// external crates
 extern crate rand;
 use rand::Rng;
 use rand::distributions::Range;
 
+// standard library
 use std::error::Error;
 use std::io::prelude::*;
 use std::fs::File;
@@ -13,15 +15,17 @@ use std::time::Instant;
 use std::thread;
 use std::sync::Arc;
 
+// bring custom modules into global scope
 mod vector;
 mod ray;
 mod shape;
 mod material;
 
+// custom modules
 use vector::Vector;
 use ray::Ray;
 use shape::Shape;
-use shape::Intersection;
+use shape::DifferentialGeometry;
 use shape::Sphere;
 use shape::ShapeAggregate;
 use material::Material;

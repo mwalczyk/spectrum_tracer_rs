@@ -1,13 +1,13 @@
 use vector::Vector;
 use ray::Ray;
-use shape::Intersection;
+use shape::DifferentialGeometry;
 
 pub trait Material: Sync + Send {
     // produce a scattered ray unless the incident
     // ray is absorbed, in which case None is returned
     fn scatter(&self,
                incident: &Ray,
-               intersection: &Intersection,
+               intersection: &DifferentialGeometry,
                attenuation: &mut Vector)
                -> Option<Ray>;
 }
@@ -20,7 +20,7 @@ pub struct Lambertian {
 impl Material for Lambertian {
     fn scatter(&self,
                incident: &Ray,
-               intersection: &Intersection,
+               intersection: &DifferentialGeometry,
                attenuation: &mut Vector)
                -> Option<Ray> {
 
@@ -42,7 +42,7 @@ pub struct Metallic {
 impl Material for Metallic {
     fn scatter(&self,
                incident: &Ray,
-               intersection: &Intersection,
+               intersection: &DifferentialGeometry,
                attenuation: &mut Vector)
                -> Option<Ray> {
 
