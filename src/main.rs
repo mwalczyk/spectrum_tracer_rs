@@ -59,12 +59,13 @@ const ORIGIN: Vector = Vector {
 };
 
 fn trace(r: &Ray, scene: &ShapeAggregate, depth: u32) -> Vector {
-    let intersection = scene.intersect(&r, 0.001, std::f64::MAX);
-    match intersection {
-        Intersection::Hit { position, normal, ref material, .. } => {
+    let possible_intersection = scene.intersect(&r, 0.001, std::f64::MAX);
+    match possible_intersection {
+        Some(intersection) => {
             let mut attenuation = Vector::one();
             if depth < MAX_DEPTH {
-                if let Some(bounce_ray) = material.scatter(&r, &intersection, &mut attenuation) {
+                if let Some(bounce_ray) = intersection.material
+                    .scatter(&r, &intersection, &mut attenuation) {
                     return attenuation * trace(&bounce_ray, &scene, depth + 1);
                 } else {
                     Vector::zero()
@@ -74,9 +75,8 @@ fn trace(r: &Ray, scene: &ShapeAggregate, depth: u32) -> Vector {
             }
 
         }
-        Intersection::Miss => {
-            let unit_direction: Vector = r.direction;
-            unit_direction.normalize();
+        None => {
+            let unit_direction = r.direction.normalize();
             let t: f64 = 0.5 * (unit_direction.y + 1.0);
             let white = Vector {
                 x: 1.0,
@@ -88,7 +88,7 @@ fn trace(r: &Ray, scene: &ShapeAggregate, depth: u32) -> Vector {
                 y: 0.7,
                 z: 1.0,
             };
-            white * (1.0 - t) + blue * t
+            white.lerp(&blue, t)
         }
     }
 }

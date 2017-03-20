@@ -55,6 +55,10 @@ impl Vector {
         *self - *n * 2.0 * self.dot(n)
     }
 
+    pub fn lerp(&self, rhs: &Vector, t: f64) -> Vector {
+        *self * (1.0 - t) + *rhs * t
+    }
+
     pub fn origin() -> Vector {
         Vector {
             x: 0.0,

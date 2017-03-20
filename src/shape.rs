@@ -8,22 +8,19 @@ use std::sync::Arc;
 const EPSILON: f64 = 0.001;
 
 #[derive(Clone)]
-pub enum Intersection {
-    Miss,
-    Hit {
-        // how far along the ray
-        t: f64,
-        // point of intersection
-        position: Vector,
-        // normal at point of intersection
-        normal: Vector,
-        // material definition at point of intersection
-        material: Arc<Material>,
-    },
+pub struct Intersection {
+    // how far along the ray
+    pub t: f64,
+    // point of intersection
+    pub position: Vector,
+    // normal at point of intersection
+    pub normal: Vector,
+    // material definition at point of intersection
+    pub material: Arc<Material>,
 }
 
 pub trait Shape: Sync + Send {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Intersection;
+    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<Intersection>;
 }
 
 #[derive(Clone)]
@@ -34,7 +31,7 @@ pub struct Sphere {
 }
 
 impl Shape for Sphere {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Intersection {
+    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
         // sphere: dot((p - c), (p - c)) = r * r;
         // ray: a + b * t = p
         // substitute: dot((a + b * t - c), (a + b * t - c)) = r * r
@@ -48,7 +45,7 @@ impl Shape for Sphere {
         let mut discriminant = b * b - 4.0 * c;
 
         if discriminant < 0.0 {
-            return Intersection::Miss;
+            return None;
         } else {
             discriminant = discriminant.sqrt();
         }
@@ -60,24 +57,24 @@ impl Shape for Sphere {
             let t: f64 = solution_1 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            return Intersection::Hit {
+            return Some(Intersection {
                 t: t,
                 position: position,
                 normal: normal,
                 material: self.material.clone(),
-            };
+            });
         } else if solution_0 > EPSILON {
             let t: f64 = solution_0 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            return Intersection::Hit {
+            return Some(Intersection {
                 t: t,
                 position: position,
                 normal: normal,
                 material: self.material.clone(),
-            };
+            });
         } else {
-            Intersection::Miss
+            None
         }
     }
 }
@@ -103,25 +100,24 @@ impl ShapeAggregate {
 }
 
 impl Shape for ShapeAggregate {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Intersection {
-        let mut intersect = Intersection::Miss;
-        let mut closest_so_far = t_max;
+    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
+        let mut closest_intersection: Option<Intersection> = None;
+        let mut closest_t = t_max;
 
         // test against every object and find the closest point of intersection
         for i in &self.items {
-            match i.intersect(&r, t_min, t_max) {
-                Intersection::Hit { t, position, normal, ref material } if t < closest_so_far => {
-                    closest_so_far = t;
-                    intersect = Intersection::Hit {
-                        t: t,
-                        position: position,
-                        normal: normal,
-                        material: material.clone(),
-                    };
+            if let Some(intersect) = i.intersect(&r, t_min, t_max) {
+                if intersect.t < closest_t {
+                    closest_t = intersect.t;
+                    closest_intersection = Some(Intersection {
+                        t: intersect.t,
+                        position: intersect.position,
+                        normal: intersect.normal,
+                        material: intersect.material.clone(),
+                    });
                 }
-                _ => continue,
             }
         }
-        intersect
+        closest_intersection
     }
 }

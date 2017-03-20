@@ -24,18 +24,13 @@ impl Material for Lambertian {
                attenuation: &mut Vector)
                -> Option<Ray> {
 
-        match *intersection {
-            Intersection::Hit { position, normal, .. } => {
-                let target = position + normal + Vector::random_in_unit_sphere();
-                let scattered = Ray::new(&position, &mut (target - position));
+        let target = intersection.position + intersection.normal + Vector::random_in_unit_sphere();
+        let scattered = Ray::new(&intersection.position,
+                                 &mut (target - intersection.position));
 
-                *attenuation = self.albedo;
+        *attenuation = self.albedo;
 
-                Some(scattered)
-            }
-            _ => None,
-        }
-
+        Some(scattered)
     }
 }
 
@@ -51,21 +46,15 @@ impl Material for Metallic {
                attenuation: &mut Vector)
                -> Option<Ray> {
 
-        match *intersection {
-            Intersection::Hit { position, normal, .. } => {
-                let reflected = incident.direction.normalize().reflect(&normal);
-                let scattered = Ray::new(&position,
-                                         &mut (reflected +
-                                               Vector::random_in_unit_sphere() * self.glossiness));
+        let reflected = incident.direction.normalize().reflect(&intersection.normal);
+        let scattered = Ray::new(&intersection.position,
+                                 &(reflected + Vector::random_in_unit_sphere() * self.glossiness));
 
-                *attenuation = self.albedo;
+        *attenuation = self.albedo;
 
-                // if scattered.direction.dot(&normal) > 0.0 {
-                return Some(scattered);
-                //}None
-            }
-            _ => None,
-        }
+        // if scattered.direction.dot(&normal) > 0.0 {
+        return Some(scattered);
+        //}Noneintersection
 
     }
 }
