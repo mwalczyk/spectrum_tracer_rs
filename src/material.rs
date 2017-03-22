@@ -33,6 +33,12 @@ impl Material for Lambertian {
     }
 }
 
+impl Lambertian {
+    pub fn new(a: &Vector) -> Lambertian {
+        Lambertian { albedo: *a }
+    }
+}
+
 pub struct Metallic {
     pub albedo: Vector,
     pub glossiness: f64,
@@ -53,5 +59,14 @@ impl Material for Metallic {
 
         *attenuation = self.albedo;
         scattered
+    }
+}
+
+impl Metallic {
+    pub fn new(a: &Vector, g: f64) -> Metallic {
+        Metallic {
+            albedo: *a,
+            glossiness: g,
+        }
     }
 }

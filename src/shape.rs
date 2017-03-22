@@ -93,3 +93,12 @@ impl Default for Sphere {
         }
     }
 }
+
+impl Sphere {
+    pub fn new(c: &Vector, r: f64) -> Sphere {
+        Sphere {
+            center: *c,
+            radius: r,
+        }
+    }
+}

@@ -59,14 +59,6 @@ impl Vector {
         *self * (1.0 - t) + *rhs * t
     }
 
-    pub fn origin() -> Vector {
-        Vector {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
-    }
-
     pub fn random_in_unit_sphere() -> Vector {
         // Rejection method for finding a random point in a
         // unit sphere: pick a point inside of the unit cube
@@ -74,16 +66,7 @@ impl Vector {
         let mut rng = rand::thread_rng();
         let mut p = Vector::origin();
         loop {
-            p = Vector {
-                x: rng.next_f64(),
-                y: rng.next_f64(),
-                z: rng.next_f64(),
-            } * 2.0 -
-                Vector {
-                x: 1.0,
-                y: 1.0,
-                z: 1.0,
-            };
+            p = Vector::new(rng.next_f64(), rng.next_f64(), rng.next_f64()) * 2.0 - Vector::one();
             if p.squared_length() <= 1.0 {
                 break;
             }
@@ -91,20 +74,16 @@ impl Vector {
         p
     }
 
+    pub fn origin() -> Vector {
+        Vector::new(0.0, 0.0, 0.0)
+    }
+
     pub fn zero() -> Vector {
-        Vector {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
+        Vector::new(0.0, 0.0, 0.0)
     }
 
     pub fn one() -> Vector {
-        Vector {
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-        }
+        Vector::new(1.0, 1.0, 1.0)
     }
 }
 

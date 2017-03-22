@@ -37,7 +37,7 @@ use scene::Scene;
 // Output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
-const SAMPLES: u32 = 1;
+const SAMPLES: u32 = 64;
 const MAX_DEPTH: u32 = 5;
 const NUMBER_OF_THREADS: u32 = 10;
 const GAMMA: f64 = 1.0 / 2.2;
@@ -110,11 +110,11 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<Scene>) -> Vec<
                 // (note that we flip the y-axis)
                 let u = (x as f64 + rng.next_f64()) / RES_X as f64;
                 let v = ((RES_Y - y) as f64 + rng.next_f64()) / RES_Y as f64;
-                let ray = Ray::new(&ORIGIN,
-                                   &(LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v),
-                                   0.001,
-                                   std::f64::MAX);
-                col += trace(&ray, &scene, 0);
+                let r = Ray::new(&ORIGIN,
+                                 &(LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v),
+                                 0.001,
+                                 std::f64::MAX);
+                col += trace(&r, &scene, 0);
             }
 
             col /= SAMPLES as f64;
@@ -150,13 +150,13 @@ fn main() {
 
     // Build a scene
     let mut scene = Scene::new();
-    let material_arc = Arc::new(Lambertian { albedo: Vector::new(1.0, 0.98, 0.96) });
-    let sphere_arc = Arc::new(Sphere {
-        center: Vector::new(0.0, -100.5, -1.0),
-        radius: 100.0,
-    });
+    let mtl_large = Arc::new(Lambertian::new(&Vector::new(1.0, 0.5, 0.2)));
+    let sph_large = Arc::new(Sphere::new(&Vector::new(0.0, -100.5, -1.0), 100.0));
+    let mtl_small = Arc::new(Lambertian::new(&Vector::new(1.0, 0.2, 0.05)));
+    let sph_small = Arc::new(Sphere::new(&Vector::new(0.0, 0.5, -2.0), 1.0));
 
-    scene.items.push(Primitive::new(sphere_arc, material_arc));
+    scene.items.push(Primitive::new(sph_large, mtl_large.clone()));
+    scene.items.push(Primitive::new(sph_small, mtl_small.clone()));
 
     // Wrap the scene in an automatic reference counter so that
     // it can be shared immutably across multiple threads
