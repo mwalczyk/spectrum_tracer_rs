@@ -150,9 +150,9 @@ fn main() {
 
     // Build a scene
     let mut scene = Scene::new();
-    let mtl_large = Arc::new(Lambertian::new(&Vector::new(1.0, 0.5, 0.2)));
+    let mtl_large = Arc::new(Lambertian::new(&Vector::new(1.0, 0.1, 0.05)));
     let sph_large = Arc::new(Sphere::new(&Vector::new(0.0, -100.5, -1.0), 100.0));
-    let mtl_small = Arc::new(Lambertian::new(&Vector::new(1.0, 0.2, 0.05)));
+    let mtl_small = Arc::new(Lambertian::new(&Vector::new(1.0, 0.95, 0.94)));
     let sph_small = Arc::new(Sphere::new(&Vector::new(0.0, 0.5, -2.0), 1.0));
 
     scene.items.push(Primitive::new(sph_large, mtl_large.clone()));
