@@ -68,7 +68,7 @@ impl Vector {
     }
 
     pub fn random_in_unit_sphere() -> Vector {
-        // rejection method for finding a random point in a
+        // Rejection method for finding a random point in a
         // unit sphere: pick a point inside of the unit cube
         // and return if it is also inside of the unit sphere
         let mut rng = rand::thread_rng();

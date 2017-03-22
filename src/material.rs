@@ -3,16 +3,14 @@ use ray::Ray;
 use shape::DifferentialGeometry;
 
 pub trait Material: Sync + Send {
-    // produce a scattered ray unless the incident
-    // ray is absorbed, in which case None is returned
+    // Produce a scattered ray
     fn scatter(&self,
                incident: &Ray,
                intersection: &DifferentialGeometry,
                attenuation: &mut Vector)
-               -> Option<Ray>;
+               -> Ray;
 }
 
-#[derive(Copy, Clone, Debug)]
 pub struct Lambertian {
     pub albedo: Vector,
 }
@@ -22,15 +20,16 @@ impl Material for Lambertian {
                incident: &Ray,
                intersection: &DifferentialGeometry,
                attenuation: &mut Vector)
-               -> Option<Ray> {
+               -> Ray {
 
         let target = intersection.position + intersection.normal + Vector::random_in_unit_sphere();
         let scattered = Ray::new(&intersection.position,
-                                 &mut (target - intersection.position));
+                                 &mut (target - intersection.position),
+                                 incident.t_min,
+                                 incident.t_max);
 
         *attenuation = self.albedo;
-
-        Some(scattered)
+        scattered
     }
 }
 
@@ -44,17 +43,15 @@ impl Material for Metallic {
                incident: &Ray,
                intersection: &DifferentialGeometry,
                attenuation: &mut Vector)
-               -> Option<Ray> {
+               -> Ray {
 
         let reflected = incident.direction.normalize().reflect(&intersection.normal);
         let scattered = Ray::new(&intersection.position,
-                                 &(reflected + Vector::random_in_unit_sphere() * self.glossiness));
+                                 &(reflected + Vector::random_in_unit_sphere() * self.glossiness),
+                                 incident.t_min,
+                                 incident.t_max);
 
         *attenuation = self.albedo;
-
-        // if scattered.direction.dot(&normal) > 0.0 {
-        return Some(scattered);
-        //}Noneintersection
-
+        scattered
     }
 }
