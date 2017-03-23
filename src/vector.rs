@@ -35,6 +35,10 @@ impl Vector {
         self.x.max(self.y).max(self.z)
     }
 
+    pub fn powf(&self, exp: f64) -> Vector {
+        Vector::new(self.x.powf(exp), self.y.powf(exp), self.z.powf(exp))
+    }
+
     pub fn dot(&self, rhs: &Vector) -> f64 {
         self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
@@ -53,6 +57,11 @@ impl Vector {
 
     pub fn reflect(&self, n: &Vector) -> Vector {
         *self - *n * 2.0 * self.dot(n)
+    }
+
+    pub fn refract(&self, n: &Vector) -> Vector {
+        Vector::new(0.0, 0.0, 0.0)
+        // TODO
     }
 
     pub fn lerp(&self, rhs: &Vector, t: f64) -> Vector {

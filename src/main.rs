@@ -31,13 +31,14 @@ use shape::Sphere;
 use material::Material;
 use material::Lambertian;
 use material::Metallic;
+use material::Dielectric;
 use primitive::Primitive;
 use scene::Scene;
 
 // Output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
-const SAMPLES: u32 = 64;
+const SAMPLES: u32 = 100;
 const MAX_DEPTH: u32 = 5;
 const NUMBER_OF_THREADS: u32 = 10;
 const GAMMA: f64 = 1.0 / 2.2;
@@ -80,7 +81,7 @@ fn trace(r: &Ray, scene: &Scene, depth: u32) -> Vector {
         // Miss
         None => {
             let unit_direction = r.direction.normalize();
-            let t: f64 = 0.5 * (unit_direction.y + 1.0);
+            let t = 0.5 * (unit_direction.y + 1.0);
             let white = Vector::one();
             let blue = Vector::new(0.5, 0.7, 1.0);
             white.lerp(&blue, t)
@@ -98,12 +99,7 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<Scene>) -> Vec<
         // Each row
         for x in start.0..end.0 {
             // Each col
-            let mut col = Vector {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            };
-
+            let mut col = Vector::zero();
             // Perform anti-aliasing
             for s in 0..SAMPLES {
                 // The uv-coordinates of the current pixel with random offsets
@@ -118,11 +114,7 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<Scene>) -> Vec<
             }
 
             col /= SAMPLES as f64;
-            let gamma_corrected = Vector {
-                x: col.x.powf(GAMMA),
-                y: col.y.powf(GAMMA),
-                z: col.z.powf(GAMMA),
-            };
+            let gamma_corrected = col.powf(GAMMA);
 
             // Convert colors to 0..255
             let ir = (255.99 * gamma_corrected.x) as u32;
@@ -151,12 +143,15 @@ fn main() {
     // Build a scene
     let mut scene = Scene::new();
     let mtl_large = Arc::new(Lambertian::new(&Vector::new(1.0, 0.1, 0.05)));
+    let mtl_glass = Arc::new(Dielectric::new(1.5));
+
     let sph_large = Arc::new(Sphere::new(&Vector::new(0.0, -100.5, -1.0), 100.0));
-    let mtl_small = Arc::new(Lambertian::new(&Vector::new(1.0, 0.95, 0.94)));
-    let sph_small = Arc::new(Sphere::new(&Vector::new(0.0, 0.5, -2.0), 1.0));
+    let sph_small_0 = Arc::new(Sphere::new(&Vector::new(0.0, 0.5, -2.0), 1.0));
+    let sph_small_1 = Arc::new(Sphere::new(&Vector::new(0.0, 0.5, -2.0), -0.95));
 
     scene.items.push(Primitive::new(sph_large, mtl_large.clone()));
-    scene.items.push(Primitive::new(sph_small, mtl_small.clone()));
+    scene.items.push(Primitive::new(sph_small_0, mtl_glass.clone()));
+    scene.items.push(Primitive::new(sph_small_1, mtl_glass.clone()));
 
     // Wrap the scene in an automatic reference counter so that
     // it can be shared immutably across multiple threads

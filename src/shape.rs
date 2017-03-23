@@ -63,22 +63,22 @@ impl Shape for Sphere {
             let t: f64 = solution_1 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            return Some(DifferentialGeometry {
+            Some(DifferentialGeometry {
                 t: t,
                 position: position,
                 normal: normal,
                 shape: self,
-            });
+            })
         } else if solution_0 > EPSILON {
             let t: f64 = solution_0 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            return Some(DifferentialGeometry {
+            Some(DifferentialGeometry {
                 t: t,
                 position: position,
                 normal: normal,
                 shape: self,
-            });
+            })
         } else {
             None
         }

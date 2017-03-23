@@ -2,6 +2,9 @@ use vector::Vector;
 use ray::Ray;
 use shape::DifferentialGeometry;
 
+extern crate rand;
+use rand::Rng;
+
 pub trait Material: Sync + Send {
     // Produce a scattered ray
     fn scatter(&self,
@@ -66,7 +69,74 @@ impl Metallic {
     pub fn new(a: &Vector, g: f64) -> Metallic {
         Metallic {
             albedo: *a,
-            glossiness: g,
+            glossiness: g.min(1.0).max(0.0),
         }
+    }
+}
+
+pub struct Dielectric {
+    pub ior: f64,
+}
+
+impl Material for Dielectric {
+    fn scatter(&self,
+               incident: &Ray,
+               intersection: &DifferentialGeometry,
+               attenuation: &mut Vector)
+               -> Ray {
+
+        // The index of refraction (IOR) of a particular medium is defined
+        // as the speed of light in a vacuum divided by the speed of light
+        // in the medium: n = c / v
+        //
+        // Snell's law states: n_i * sin(theta_i) = n_t * sin(theta_t)
+        // So, sin(theta_t) = (n_i / n_t) * sin(theta_i)
+
+        let mut scattered: Vector;
+        let mut ior = self.ior;
+        let mut normal = intersection.normal;
+
+        // R0 is the probability of reflection at normal incidence
+        let mut r0 = (1.0 - ior) / (1.0 + ior);
+        r0 = r0 * r0;
+
+        if incident.direction.dot(&normal) > 0.0 {
+            // The incident ray is inside of the medium, so flip the normal
+            // and the index of refraction
+            normal = normal * -1.0;
+            ior = 1.0 / ior;
+        }
+        ior = 1.0 / ior;
+
+        // Calculate angles
+        let cos_theta_i = incident.direction.dot(&normal) * -1.0;
+        let cos_theta_t = 1.0 - ior * ior * (1.0 - cos_theta_i * cos_theta_i);
+
+        // Schlick's approximation
+        let probability_of_reflection = r0 + (1.0 - r0) * (1.0 - cos_theta_i).powf(5.0);
+        let mut rng = rand::thread_rng();
+
+        if cos_theta_t > 0.0 && rng.next_f64() > probability_of_reflection {
+            // Refract
+            scattered = ((incident.direction * ior) +
+                         (normal * (ior * cos_theta_i - cos_theta_t.sqrt())))
+                .normalize()
+        } else {
+            // Reflect
+            scattered = incident.direction.reflect(&intersection.normal)
+        }
+
+        *attenuation = Vector::one();
+        let refracted = incident.direction.refract(&intersection.normal);
+        Ray::new(&intersection.position,
+                 &scattered,
+                 incident.t_min,
+                 incident.t_max)
+    }
+}
+
+impl Dielectric {
+    pub fn new(i: f64) -> Dielectric {
+        Dielectric { ior: i }
     }
 }
