@@ -91,39 +91,40 @@ impl Material for Dielectric {
         //
         // Snell's law states: n_i * sin(theta_i) = n_t * sin(theta_t)
         // So, sin(theta_t) = (n_i / n_t) * sin(theta_i)
-
-        let mut scattered: Vector;
         let mut ior = self.ior;
-        let mut normal = intersection.normal;
 
-        // R0 is the probability of reflection at normal incidence
+        // R0 is the probability of reflection at normal incidence, which
+        // is given by the equation:
+        //              r0 = ((n1 - n2) / (n1 + n2))^2
+        // Air in a vacuum has an IOR of 1.0, which is n1 in the equation
+        // above
         let mut r0 = (1.0 - ior) / (1.0 + ior);
         r0 = r0 * r0;
 
-        if incident.direction.dot(&normal) > 0.0 {
-            // The incident ray is inside of the medium, so flip the normal
-            // and the index of refraction
-            normal = normal * -1.0;
+        // Check if the incident ray is inside of the medium, in which case
+        // flip the normal
+        let mut outward_normal = intersection.normal;
+        if incident.direction.dot(&outward_normal) > 0.0 {
+            outward_normal *= -1.0;
             ior = 1.0 / ior;
         }
         ior = 1.0 / ior;
 
         // Calculate angles
-        let cos_theta_i = incident.direction.dot(&normal) * -1.0;
+        let cos_theta_i = incident.direction.dot(&outward_normal) * -1.0;
         let cos_theta_t = 1.0 - ior * ior * (1.0 - cos_theta_i * cos_theta_i);
 
         // Schlick's approximation
         let probability_of_reflection = r0 + (1.0 - r0) * (1.0 - cos_theta_i).powf(5.0);
         let mut rng = rand::thread_rng();
-
+        let mut scattered: Vector;
         if cos_theta_t > 0.0 && rng.next_f64() > probability_of_reflection {
             // Refract
             scattered = ((incident.direction * ior) +
-                         (normal * (ior * cos_theta_i - cos_theta_t.sqrt())))
-                .normalize()
+                         (outward_normal * (ior * cos_theta_i - cos_theta_t.sqrt())));
         } else {
             // Reflect
-            scattered = incident.direction.reflect(&intersection.normal)
+            scattered = incident.direction.reflect(&outward_normal);
         }
 
         *attenuation = Vector::one();
