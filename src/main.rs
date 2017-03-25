@@ -28,6 +28,7 @@ use ray::Ray;
 use shape::Shape;
 use shape::DifferentialGeometry;
 use shape::Sphere;
+use shape::Plane;
 use material::Material;
 use material::Lambertian;
 use material::Metallic;
@@ -38,7 +39,7 @@ use scene::Scene;
 // Output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
-const SAMPLES: u32 = 1;
+const SAMPLES: u32 = 200;
 const MAX_DEPTH: u32 = 5;
 const NUMBER_OF_THREADS: u32 = 10;
 const GAMMA: f64 = 1.0 / 2.2;
@@ -142,19 +143,27 @@ fn main() {
 
     // Build a scene
     let mut scene = Scene::new();
-    let mtl_red = Arc::new(Lambertian::new(&Vector::new(1.0, 0.2, 0.1)));
-    let mtl_small = Arc::new(Lambertian::new(&Vector::new(1.0, 0.9, 0.5)));
-    let mtl_metal = Arc::new(Metallic::new(&Vector::new(1.0, 0.95, 0.95), 0.5));
-    let mtl_glass = Arc::new(Dielectric::new(1.5));
+    let mtl_diff_red = Arc::new(Lambertian::new(&Vector::new(1.0, 0.1, 0.0)));
+    let mtl_diff_green = Arc::new(Lambertian::new(&Vector::new(0.05, 0.6, 0.5)));
+    let mtl_diff_white = Arc::new(Lambertian::new(&Vector::new(1.0, 1.0, 1.0)));
+    let mtl_diffuse_yellow = Arc::new(Lambertian::new(&Vector::new(1.0, 0.9, 0.5)));
+    let mtl_metal = Arc::new(Metallic::new(&Vector::new(1.0, 0.95, 0.95), 0.65));
+    let mtl_glass = Arc::new(Metallic::new(&Vector::new(1.0, 0.95, 0.95), 0.2));
 
-    let sph_large = Arc::new(Sphere::new(&Vector::new(0.0, -100.5, -1.0), 100.0));
+    let floor = Arc::new(Plane::new(&Vector::new(0.0, -0.6, 0.0), &Vector::new(0.0, 1.0, 0.0)));
+    let left = Arc::new(Plane::new(&Vector::new(1.0, 0.0, 0.0), &Vector::new(1.0, 0.0, 0.0)));
+    let right = Arc::new(Plane::new(&Vector::new(-1.0, 0.0, 0.0), &Vector::new(-1.0, 0.0, 0.0)));
+    let back = Arc::new(Plane::new(&Vector::new(0.0, 0.0, -2.0), &Vector::new(0.0, 0.0, -1.0)));
+    scene.items.push(Primitive::new(floor, mtl_diff_white.clone()));
+    scene.items.push(Primitive::new(left, mtl_diff_red.clone()));
+    scene.items.push(Primitive::new(right, mtl_diff_green.clone()));
+    scene.items.push(Primitive::new(back, mtl_diff_white.clone()));
+
     let sph_small_0 = Arc::new(Sphere::new(&Vector::new(0.0, 0.4, -2.0), 1.0));
     let sph_small_1 = Arc::new(Sphere::new(&Vector::new(-0.5, -0.2, -1.0), 0.3));
     let sph_small_2 = Arc::new(Sphere::new(&Vector::new(0.4, -0.1, -1.1), 0.4));
-
-    scene.items.push(Primitive::new(sph_large, mtl_red.clone()));
     scene.items.push(Primitive::new(sph_small_0, mtl_metal.clone()));
-    scene.items.push(Primitive::new(sph_small_1, mtl_small.clone()));
+    scene.items.push(Primitive::new(sph_small_1, mtl_diffuse_yellow.clone()));
     scene.items.push(Primitive::new(sph_small_2, mtl_glass.clone()));
 
     // Wrap the scene in an automatic reference counter so that

@@ -87,9 +87,12 @@ impl Material for Dielectric {
 
         // The index of refraction (IOR) of a particular medium is defined
         // as the speed of light in a vacuum divided by the speed of light
-        // in the medium: n = c / v
+        // in the medium:
+        //              n = c / v
         //
-        // Snell's law states: n_i * sin(theta_i) = n_t * sin(theta_t)
+        // Snell's law states:
+        //              n_i * sin(theta_i) = n_t * sin(theta_t)
+        //
         // So, sin(theta_t) = (n_i / n_t) * sin(theta_i)
         let mut ior = self.ior;
 

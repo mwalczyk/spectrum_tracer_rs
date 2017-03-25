@@ -102,3 +102,43 @@ impl Sphere {
         }
     }
 }
+
+#[derive(Clone)]
+pub struct Plane {
+    pub center: Vector,
+    pub normal: Vector,
+}
+
+impl Shape for Plane {
+    fn intersect(&self, r: &Ray) -> Option<DifferentialGeometry> {
+        // Ignore cases where the ray direction is parallel to the plane
+        let denominator = r.direction.dot(&self.normal);
+        if denominator.abs() > EPSILON {
+            let p_minus_l = self.center - r.origin;
+            let t = p_minus_l.dot(&self.normal) / denominator;
+            if t >= EPSILON && r.point_at(t).y < 1.0 {
+                return Some(DifferentialGeometry::new(t, &r.point_at(t), &self.normal, self));
+            }
+            return None;
+        }
+        None
+    }
+}
+
+impl Default for Plane {
+    fn default() -> Plane {
+        Plane {
+            center: Vector::origin(),
+            normal: Vector::new(0.0, 1.0, 0.0),
+        }
+    }
+}
+
+impl Plane {
+    pub fn new(c: &Vector, n: &Vector) -> Plane {
+        Plane {
+            center: *c,
+            normal: *n,
+        }
+    }
+}
