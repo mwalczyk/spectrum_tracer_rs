@@ -52,9 +52,8 @@ impl Shape for Sphere {
 
         if discriminant < 0.0 {
             return None;
-        } else {
-            discriminant = discriminant.sqrt();
         }
+        discriminant = discriminant.sqrt();
 
         let solution_0 = -b + discriminant;
         let solution_1 = -b - discriminant;
@@ -63,22 +62,12 @@ impl Shape for Sphere {
             let t: f64 = solution_1 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            Some(DifferentialGeometry {
-                t: t,
-                position: position,
-                normal: normal,
-                shape: self,
-            })
+            Some(DifferentialGeometry::new(t, &position, &normal, self))
         } else if solution_0 > EPSILON {
             let t: f64 = solution_0 * 0.5;
             let position = r.point_at(t);
             let normal = (position - self.center) / self.radius;
-            Some(DifferentialGeometry {
-                t: t,
-                position: position,
-                normal: normal,
-                shape: self,
-            })
+            Some(DifferentialGeometry::new(t, &position, &normal, self))
         } else {
             None
         }
@@ -116,10 +105,11 @@ impl Shape for Plane {
         if denominator.abs() > EPSILON {
             let p_minus_l = self.center - r.origin;
             let t = p_minus_l.dot(&self.normal) / denominator;
+
+            // TODO: this is not correct - planes should be infinite
             if t >= EPSILON && r.point_at(t).y < 1.0 {
                 return Some(DifferentialGeometry::new(t, &r.point_at(t), &self.normal, self));
             }
-            return None;
         }
         None
     }

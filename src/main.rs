@@ -21,6 +21,7 @@ mod shape;
 mod material;
 mod primitive;
 mod scene;
+mod camera;
 
 // Custom modules
 use vector::Vector;
@@ -35,36 +36,15 @@ use material::Metallic;
 use material::Dielectric;
 use primitive::Primitive;
 use scene::Scene;
+use camera::Camera;
 
 // Output resolution
 const RES_X: u32 = 800;
 const RES_Y: u32 = 800;
-const SAMPLES: u32 = 200;
+const SAMPLES: u32 = 1;
 const MAX_DEPTH: u32 = 5;
 const NUMBER_OF_THREADS: u32 = 10;
 const GAMMA: f64 = 1.0 / 2.2;
-
-// Direction vectors for generating rays from uv-coordinates
-const LOWER_LEFT_CORNER: Vector = Vector {
-    x: -1.0,
-    y: -1.0,
-    z: -1.0,
-};
-const HORIZONTAL: Vector = Vector {
-    x: 2.0,
-    y: 0.0,
-    z: 0.0,
-};
-const VERTICAL: Vector = Vector {
-    x: 0.0,
-    y: 2.0,
-    z: 0.0,
-};
-const ORIGIN: Vector = Vector {
-    x: 0.0,
-    y: 0.0,
-    z: 0.0,
-};
 
 fn trace(r: &Ray, scene: &Scene, depth: u32) -> Vector {
     let surface_interaction = scene.intersect(&r);
@@ -92,7 +72,11 @@ fn trace(r: &Ray, scene: &Scene, depth: u32) -> Vector {
 
 struct Color(u32, u32, u32);
 
-fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<Scene>) -> Vec<Color> {
+fn threaded_color(start: (u32, u32),
+                  end: (u32, u32),
+                  camera: Arc<Camera>,
+                  scene: Arc<Scene>)
+                  -> Vec<Color> {
     let mut colors = Vec::new();
     let mut rng = rand::thread_rng();
 
@@ -107,10 +91,7 @@ fn threaded_color(start: (u32, u32), end: (u32, u32), scene: Arc<Scene>) -> Vec<
                 // (note that we flip the y-axis)
                 let u = (x as f64 + rng.next_f64()) / RES_X as f64;
                 let v = ((RES_Y - y) as f64 + rng.next_f64()) / RES_Y as f64;
-                let r = Ray::new(&ORIGIN,
-                                 &(LOWER_LEFT_CORNER + HORIZONTAL * u + VERTICAL * v),
-                                 0.001,
-                                 std::f64::MAX);
+                let r = camera.generate_ray(u, v);
                 col += trace(&r, &scene, 0);
             }
 
@@ -143,13 +124,12 @@ fn main() {
 
     // Build a scene
     let mut scene = Scene::new();
-    let mtl_diff_red = Arc::new(Lambertian::new(&Vector::new(1.0, 0.1, 0.0)));
-    let mtl_diff_green = Arc::new(Lambertian::new(&Vector::new(0.05, 0.6, 0.5)));
-    let mtl_diff_white = Arc::new(Lambertian::new(&Vector::new(1.0, 1.0, 1.0)));
-    let mtl_diffuse_yellow = Arc::new(Lambertian::new(&Vector::new(1.0, 0.9, 0.5)));
-    let mtl_metal = Arc::new(Metallic::new(&Vector::new(1.0, 0.95, 0.95), 0.65));
-    let mtl_glass = Arc::new(Metallic::new(&Vector::new(1.0, 0.95, 0.95), 0.2));
+    let mtl_diff_red = Arc::new(Lambertian::new(&Vector::new(1.0, 0.0, 0.0)));
+    let mtl_diff_green = Arc::new(Lambertian::new(&Vector::new(0.0, 1.0, 0.0)));
+    let mtl_diff_white = Arc::new(Lambertian::new(&Vector::one()));
+    let mtl_glass = Arc::new(Dielectric::new(1.5));
 
+    // Walls
     let floor = Arc::new(Plane::new(&Vector::new(0.0, -0.6, 0.0), &Vector::new(0.0, 1.0, 0.0)));
     let left = Arc::new(Plane::new(&Vector::new(1.0, 0.0, 0.0), &Vector::new(1.0, 0.0, 0.0)));
     let right = Arc::new(Plane::new(&Vector::new(-1.0, 0.0, 0.0), &Vector::new(-1.0, 0.0, 0.0)));
@@ -159,24 +139,33 @@ fn main() {
     scene.items.push(Primitive::new(right, mtl_diff_green.clone()));
     scene.items.push(Primitive::new(back, mtl_diff_white.clone()));
 
-    let sph_small_0 = Arc::new(Sphere::new(&Vector::new(0.0, 0.4, -2.0), 1.0));
-    let sph_small_1 = Arc::new(Sphere::new(&Vector::new(-0.5, -0.2, -1.0), 0.3));
-    let sph_small_2 = Arc::new(Sphere::new(&Vector::new(0.4, -0.1, -1.1), 0.4));
-    scene.items.push(Primitive::new(sph_small_0, mtl_metal.clone()));
-    scene.items.push(Primitive::new(sph_small_1, mtl_diffuse_yellow.clone()));
-    scene.items.push(Primitive::new(sph_small_2, mtl_glass.clone()));
+    // Spheres
+    const NUMBER_OF_SPHERES: u32 = 7;
+    const MINIMUM_RADIUS: f64 = 0.1;
+    for i in 0..NUMBER_OF_SPHERES {
+        let pct = (i as f64) / (NUMBER_OF_SPHERES as f64);
+        let x = pct * 2.0 - 1.0;
+        let mtl = Arc::new(Metallic::new(&Vector::one(), x));
+        let sph = Arc::new(Sphere::new(&Vector::new(x + 0.05, 0.0, -1.0),
+                                       (pct * 0.5 + MINIMUM_RADIUS) * 0.25));
+        scene.items.push(Primitive::new(sph, mtl));
+    }
 
-    // Wrap the scene in an automatic reference counter so that
-    // it can be shared immutably across multiple threads
+    // Set up camera and scene atomic reference counted pointers
+    let shared_camera = Arc::new(Camera::new(60.0, RES_X as f64 / RES_Y as f64));
     let shared_scene = Arc::new(scene);
 
+    // Launch threads
     let mut file_contents: String = format!("P3\n{} {}\n255\n", RES_X, RES_Y);
     let mut child_threads = vec![];
     for i in 0..NUMBER_OF_THREADS {
         let start: (u32, u32) = (0, i * (RES_X / NUMBER_OF_THREADS));
         let end: (u32, u32) = (RES_Y, (i + 1) * (RES_X / NUMBER_OF_THREADS));
         let cloned_scene = shared_scene.clone();
-        child_threads.push(thread::spawn(move || threaded_color(start, end, cloned_scene)));
+        let cloned_camera = shared_camera.clone();
+        child_threads.push(thread::spawn(move || {
+            threaded_color(start, end, cloned_camera, cloned_scene)
+        }));
     }
 
     // Re-join threads and write ppm pixel data
@@ -188,6 +177,7 @@ fn main() {
         }
     }
 
+    // Calculate the render time
     let elapsed = start.elapsed();
 
     // Write to the file

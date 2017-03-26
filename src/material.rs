@@ -121,10 +121,12 @@ impl Material for Dielectric {
         let probability_of_reflection = r0 + (1.0 - r0) * (1.0 - cos_theta_i).powf(5.0);
         let mut rng = rand::thread_rng();
         let mut scattered: Vector;
+
+        // Check for total internal reflection (when cos_theta_t is negative)
         if cos_theta_t > 0.0 && rng.next_f64() > probability_of_reflection {
             // Refract
-            scattered = ((incident.direction * ior) +
-                         (outward_normal * (ior * cos_theta_i - cos_theta_t.sqrt())));
+            scattered = (incident.direction * ior) +
+                        (outward_normal * (ior * cos_theta_i - cos_theta_t.sqrt()));
         } else {
             // Reflect
             scattered = incident.direction.reflect(&outward_normal);
